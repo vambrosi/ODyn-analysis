@@ -16,6 +16,7 @@ DEFAULT_MAX_DIAMETER_PX = 55.0
 
 GLOM_10X_DEFAULTS = {
     "mode": "watershed",
+    "blur_sigma_px": 0.0,
     "threshold_pctl": 60.0,
     "adaptive_block_px": 101,
     "min_diameter_px": 20.0,
@@ -151,6 +152,7 @@ def segment_image(
     *,
     threshold_pctl: float = 90.0,
     mode: str = "watershed",
+    blur_sigma_px: float = 0.0,
     min_diameter_px: float = DEFAULT_MIN_DIAMETER_PX,
     max_diameter_px: float = DEFAULT_MAX_DIAMETER_PX,
     peak_distance_px: None | float = None,
@@ -166,9 +168,31 @@ def segment_image(
 
     image = np.asarray(image, dtype=np.float32)
 
-    finite = image[np.isfinite(image)]
-    if finite.size == 0:
+    finite_pixels = np.isfinite(image)
+
+    if not finite_pixels.any():
         raise ValueError("Image has no finite values.")
+
+    if blur_sigma_px:
+        # Blurs everything downstream, threshold and seeds alike: the ROI
+        # outline is the edge of `image > threshold`, decided pixel by pixel,
+        # so smoothing only what watershed floods changes nothing at all.
+        # Seeds too, on purpose, so a cluster of bright specks is found once
+        # instead of once per speck.
+        #
+        # NOTE: this moves the intensity distribution, so `threshold_pctl` cuts
+        # somewhere else and regions grow. Expect to retune it and the diameter
+        # bounds after touching this, rather than treating it as independent.
+        from skimage.filters import gaussian
+
+        # Filled first: one NaN would otherwise spread over the whole image,
+        # and the non-finite pixels are put back so the checks below still see
+        # them. Median rather than zero, so an edge does not appear at the hole.
+        filled = np.where(finite_pixels, image, np.median(image[finite_pixels]))
+        image = gaussian(filled, sigma=blur_sigma_px, preserve_range=True)
+        image = np.where(finite_pixels, image, np.nan).astype(np.float32)
+
+    finite = image[finite_pixels]
 
     threshold = float(np.percentile(finite, threshold_pctl))
     binary = np.isfinite(image) & (image > threshold)
