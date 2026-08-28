@@ -39,6 +39,7 @@ MERGE_SLIDER_RANGES = {
 # both directions -- the old GUI's min_area slider stopped at 200 px when the
 # settled minimum was 314, so the interface could not express its own defaults.
 SLIDER_RANGES = {
+    "blur_sigma_px": (0.0, 10.0, 0.5),
     "threshold_pctl": (0.0, 99.5, 0.5),
     "adaptive_block_px": (0, 401, 10),
     "min_diameter_px": (2.0, 80.0, 1.0),

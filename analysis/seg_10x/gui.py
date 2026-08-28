@@ -123,6 +123,7 @@ class SegmentationGUI:
 
         self.sliders = {}
         labels = {
+            "blur_sigma_px": "blur sigma px",
             "threshold_pctl": "threshold %", "adaptive_block_px": "adaptive block",
             "min_diameter_px": "min diameter px", "max_diameter_px": "max diameter px",
             "peak_distance_px": "peak distance px", "border_px": "border exclude px",
